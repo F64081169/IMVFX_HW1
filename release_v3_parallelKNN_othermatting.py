@@ -17,6 +17,7 @@ from scipy.fft import fft2, ifft2
 from scipy.sparse.linalg import cg
 import multiprocessing as mp
 
+
 # configurations
 K = 10 # KNN K neighbors
 KNN_METHOD = 'parallel' # 'custom', 'sklearn', 'kdtree', 'balltree', 'parallel',default=sklearn
@@ -115,16 +116,16 @@ def _knn_chunk(chunk_feature_vec):
 
 def parallel_knn(feature_vec, n_jobs=4):
 
-  n_rows = feature_vec.shape[0]
-  chunksize = int(n_rows / n_jobs) + 1
+    n_rows = feature_vec.shape[0]
+    chunksize = int(n_rows / n_jobs) + 1
 
-  with mp.Pool(processes=n_jobs) as pool:
-    results = pool.map(_knn_chunk, np.array_split(feature_vec, n_jobs))
+    with mp.Pool(processes=n_jobs) as pool:
+        results = pool.map(_knn_chunk, np.array_split(feature_vec, n_jobs))
 
-  knns = np.concatenate(results)
-  return knns
+    knns = np.concatenate(results)
+    return knns
 
-def knn_matting(image, trimap, my_lambda=100):
+def knn_matting(image, trimap, my_lambda=100, knn_method='sklearn'):
     [h, w, c] = image.shape
     image, trimap = image / 255.0, trimap / 255.0
     foreground = (trimap == 1.0).astype(int)
@@ -135,16 +136,16 @@ def knn_matting(image, trimap, my_lambda=100):
     ####################################################
     a, b = np.unravel_index(np.arange(h*w), (h, w))
     feature_vec = np.append(np.transpose(image.reshape(h*w,c)), [ a, b]/np.sqrt(h*h + w*w), axis=0).T
-    if KNN_METHOD == 'custom':
+    if knn_method == 'custom':
         knns = custom_knn(image, K)
-    elif KNN_METHOD == 'sklearn':
+    elif knn_method == 'sklearn':
         nbrs = NearestNeighbors(n_neighbors=K, n_jobs=4).fit(feature_vec)
         knns = nbrs.kneighbors(feature_vec)[1]
-    elif KNN_METHOD == 'kdtree':
+    elif knn_method == 'kdtree':
         knns = custom_knn_kdtree(image, K)
-    elif KNN_METHOD == 'balltree':
+    elif knn_method == 'balltree':
         knns = custom_knn_balltree(image, K)
-    elif KNN_METHOD == 'parallel':
+    elif knn_method == 'parallel':
         knns = parallel_knn(feature_vec, n_jobs=4)
     else:
         nbrs = NearestNeighbors(n_neighbors=K, n_jobs=4).fit(feature_vec)
@@ -197,11 +198,11 @@ if __name__ == '__main__':
             start_time = cv2.getTickCount()
             print('Processing image: ', img,method)
             if method == 'knn_matting':
-                alpha = knn_matting(image, trimap)
+                alpha = knn_matting(image, trimap,method=method)
             elif methods == 'closed_form_matting':
                 alpha = closed_form_matting(image, trimap)
             elif methods == 'poisson_matting':
-                alpha = poisson_matting(image, trimap)
+                alpha = poisson_matting(image, trimap,method=method)
             else:
                 alpha = knn_matting(image, trimap)
             alpha = alpha[:, :, np.newaxis]
