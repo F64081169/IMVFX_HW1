@@ -6,12 +6,13 @@ import scipy.sparse
 import warnings
 import matplotlib.pyplot as plt
 import cv2
+from sklearn.neighbors import BallTree
+from sklearn.neighbors import KDTree
 
-from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
-from sklearn.ensemble import IsolationForest
+# configurations
+K = 10 # KNN K neighbors
+KNN_METHOD = 'kdtree' # 'custom', 'sklearn', 'kdtree', 'balltree'
 
-K = 3
 def custom_knn(image, k):
     h, w, c = image.shape
     a, b = np.unravel_index(np.arange(h*w), (h, w))
@@ -26,6 +27,32 @@ def custom_knn(image, k):
     
     return knns
 
+def custom_knn_kdtree(image, k):
+    h, w, c = image.shape
+    a, b = np.unravel_index(np.arange(h*w), (h, w))
+    feature_vec = np.append(np.transpose(image.reshape(h*w,c)), [ a, b]/np.sqrt(h*h + w*w), axis=0).T
+    
+    tree = KDTree(feature_vec)
+    
+    dist, ind = tree.query(feature_vec, k=k+1)
+    
+    knns = ind[:, 1:]
+    
+    return knns
+
+def custom_knn_balltree(image, k):
+    h, w, c = image.shape
+    a, b = np.unravel_index(np.arange(h*w), (h, w))
+    feature_vec = np.append(np.transpose(image.reshape(h*w,c)), [ a, b]/np.sqrt(h*h + w*w), axis=0).T
+    
+    tree = BallTree(feature_vec)
+    
+    dist, ind = tree.query(feature_vec, k=k+1)
+    
+    knns = ind[:, 1:]
+    
+    return knns
+
 def knn_matting(image, trimap, my_lambda=100):
     [h, w, c] = image.shape
     image, trimap = image / 255.0, trimap / 255.0
@@ -37,9 +64,15 @@ def knn_matting(image, trimap, my_lambda=100):
     ####################################################
     a, b = np.unravel_index(np.arange(h*w), (h, w))
     feature_vec = np.append(np.transpose(image.reshape(h*w,c)), [ a, b]/np.sqrt(h*h + w*w), axis=0).T
-    nbrs = NearestNeighbors(n_neighbors=K, n_jobs=4).fit(feature_vec)
-    knns = nbrs.kneighbors(feature_vec)[1]
-    # knns = custom_knn(image, K)
+    if KNN_METHOD == 'custom':
+        knns = custom_knn(image, K)
+    elif KNN_METHOD == 'sklearn':
+        nbrs = NearestNeighbors(n_neighbors=K, n_jobs=4).fit(feature_vec)
+        knns = nbrs.kneighbors(feature_vec)[1]
+    elif KNN_METHOD == 'kdtree':
+        knns = custom_knn_kdtree(image, K)
+    elif KNN_METHOD == 'balltree':
+        knns = custom_knn_balltree(image, K)
     
     ####################################################
     # TODO: compute the affinity matrix A
