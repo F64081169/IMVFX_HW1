@@ -1,4 +1,5 @@
 # reference : https://github.com/MarcoForte/knn-matting.git
+# https://github.com/CassiaCai/Building-AI-coursework-Elements-of-AI/blob/main/ex16-nearest-neighbor
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 import scipy.sparse
@@ -6,7 +7,11 @@ import warnings
 import matplotlib.pyplot as plt
 import cv2
 
-K = 10
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.ensemble import IsolationForest
+
+K = 3
 def custom_knn(image, k):
     h, w, c = image.shape
     a, b = np.unravel_index(np.arange(h*w), (h, w))
@@ -32,15 +37,16 @@ def knn_matting(image, trimap, my_lambda=100):
     ####################################################
     a, b = np.unravel_index(np.arange(h*w), (h, w))
     feature_vec = np.append(np.transpose(image.reshape(h*w,c)), [ a, b]/np.sqrt(h*h + w*w), axis=0).T
-    # nbrs = NearestNeighbors(n_neighbors=10, n_jobs=4).fit(feature_vec)
-    # knns = nbrs.kneighbors(feature_vec)[1]
-    knns = custom_knn(image, K)
+    nbrs = NearestNeighbors(n_neighbors=K, n_jobs=4).fit(feature_vec)
+    knns = nbrs.kneighbors(feature_vec)[1]
+    # knns = custom_knn(image, K)
+    
     ####################################################
     # TODO: compute the affinity matrix A
     #       and all other stuff needed
     ####################################################
-    row_inds = np.repeat(np.arange(h*w), 10)
-    col_inds = knns.reshape(h*w*10)
+    row_inds = np.repeat(np.arange(h*w), K)
+    col_inds = knns.reshape(h*w*K)
     vals = 1 - np.linalg.norm(feature_vec[row_inds] - feature_vec[col_inds], axis=1)/(c+2)
     A = scipy.sparse.coo_matrix((vals, (row_inds, col_inds)),shape=(h*w, h*w))
 
@@ -75,7 +81,7 @@ if __name__ == '__main__':
     for img in img_dir:
         image = cv2.imread('./image/'+img+'.png')
         trimap = cv2.imread('./trimap/'+img+'.png')
-
+        print('Processing image: ', img)
         alpha = knn_matting(image, trimap)
         alpha = alpha[:, :, np.newaxis]
 
@@ -89,3 +95,4 @@ if __name__ == '__main__':
         result = []
         result = image * alpha + (1 - alpha) * background
         cv2.imwrite('./result/'+img+'.png', result)
+        print(img, 'finished')
