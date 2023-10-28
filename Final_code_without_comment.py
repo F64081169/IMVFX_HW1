@@ -18,7 +18,7 @@ import cv2
 from sklearn.neighbors import BallTree
 from sklearn.neighbors import KDTree
 import multiprocessing as mp
-
+import scipy.sparse.linalg as splinalg
 
 # configurations
 K = 10 # KNN K neighbors
@@ -246,6 +246,13 @@ def knn_matting(image, trimap, my_lambda=100, knn_method='sklearn'):
         # eigvals, eigvecs = scipy.sparse.linalg.eigsh(H, 1)
         # max_eigval = eigvals[-1]
         # alpha = np.minimum(np.maximum(c / max_eigval, 0), 1).reshape(h, w)
+        ## Conjugate Gradient Method
+        # x0 = np.zeros_like(c)
+        # max_iter = 1000  
+        # tolerance = 1e-6 
+        # result = splinalg.cg(H, c, x0=x0, maxiter=max_iter, tol=tolerance)
+        # x = result[0]
+        # alpha = np.minimum(np.maximum(x, 0), 1).reshape(h, w)
         pass
     except Warning:
         x = scipy.sparse.linalg.lsqr(H, c)
