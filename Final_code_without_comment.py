@@ -17,10 +17,6 @@ import cv2
 
 from sklearn.neighbors import BallTree
 from sklearn.neighbors import KDTree
-from scipy.sparse.linalg import spsolve
-from scipy.sparse import coo_matrix
-from scipy.fft import fft2, ifft2
-from scipy.sparse.linalg import cg
 import multiprocessing as mp
 
 
@@ -244,7 +240,12 @@ def knn_matting(image, trimap, my_lambda=100, knn_method='sklearn'):
     warnings.filterwarnings('error')
     alpha = []
     try:
+        ## Exact solution
         alpha = np.minimum(np.maximum(scipy.sparse.linalg.spsolve(H, c), 0), 1).reshape(h, w)
+        ## Approximate solution
+        # eigvals, eigvecs = scipy.sparse.linalg.eigsh(H, 1)
+        # max_eigval = eigvals[-1]
+        # alpha = np.minimum(np.maximum(c / max_eigval, 0), 1).reshape(h, w)
         pass
     except Warning:
         x = scipy.sparse.linalg.lsqr(H, c)
@@ -256,7 +257,7 @@ def knn_matting(image, trimap, my_lambda=100, knn_method='sklearn'):
 
 if __name__ == '__main__':
     img_dir = ['bear','gandalf','woman']
-    methods = ['poisson_matting']#['knn_matting', 'closed_form_matting', 'poisson_matting']
+    methods = ['knn_matting']#['knn_matting', 'closed_form_matting', 'poisson_matting']
     knn_methods = ['sklearn']#['sklearn', 'kdtree', 'balltree', 'parallel']
     k_params = [5, 10, 20, 30, 40, 50, 100]
     for img in img_dir:
@@ -267,11 +268,11 @@ if __name__ == '__main__':
             start_time = cv2.getTickCount()
             print('Processing image: ', img,method)
             if method == 'knn_matting':
-                alpha = knn_matting(image, trimap,method=method)
+                alpha = knn_matting(image, trimap)
             elif methods == 'closed_form_matting':
                 alpha = closed_form_matting(image, trimap)
             elif methods == 'poisson_matting':
-                alpha = poisson_matting(image, trimap,method=method)
+                alpha = poisson_matting(image, trimap)
             else:
                 alpha = knn_matting(image, trimap)
             alpha = alpha[:, :, np.newaxis]
