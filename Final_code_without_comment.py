@@ -6,6 +6,8 @@ reference code:
     4. knn kdtree : https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KDTree.html#sklearn.neighbors.KDTree
     5. poisson matting : https://github.com/MarcoForte/poisson-matting/tree/master
     6. closed form matting : https://stackoverflow.com/questions/55353735/how-to-do-alpha-matting-in-python
+    7. linrar system speed up approximation : https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.eigsh.html
+    8. linrar system speed up Conjugate Gradient Method : https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.cg.html#scipy.sparse.linalg.cg
 """
 
 import numpy as np
